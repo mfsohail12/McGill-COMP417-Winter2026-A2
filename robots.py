@@ -89,6 +89,9 @@ class Gen3LiteArmController(object):
             self.createEasiestMaze()
         elif env_name == "Free":
             self.createFreeMaze()
+        else:
+            print("Can only create robot enviroments with names Free, Easiest and Hardest. I received env_name: ", env_name)
+            exit()
 
     def createFreeMaze(self):
         

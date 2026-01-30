@@ -126,9 +126,9 @@ if __name__ == "__main__":
                     prog='arm_rrt',
                     description='Plans and executes paths for arms around obstacles.')
     parser.add_argument('--filename',default='rrt_path.npy')           
-    parser.add_argument('-e', '--environment',default='middle')
-    parser.add_argument('-p', '--plan',action='store_true')
-    parser.add_argument('-r', '--run',action='store_true')
+    parser.add_argument('-e', '--environment',default='Easiest')
+    parser.add_argument('-p', '--plan',action='store_true',default=True)
+    parser.add_argument('-r', '--run',action='store_true',default=False)
     args = parser.parse_args()
 
     rrt = RRT(env_name=args.environment)
