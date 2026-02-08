@@ -4,6 +4,8 @@ from scipy.spatial import cKDTree
 import random
 import argparse
 import robots
+import time
+
 
 class Node:
     def __init__(self, point, parent=None):
@@ -87,6 +89,10 @@ class RRT:
             tree1, tree2 = tree2, tree1
         
         return False # path from start to goal was not found
+    
+    # Prints the total number of nodes in the RRT 
+    def print_num_nodes(self):
+        print("Total Nodes = ", len(self.start_tree.node_list) + len(self.goal_tree.node_list)); 
 
     def sample(self):
         point = []
@@ -154,7 +160,12 @@ if __name__ == "__main__":
     rrt = RRT(env_name=args.environment)
 
     if args.plan:
+        start = time.perf_counter()
         success = rrt.plan()
+        end = time.perf_counter()
+
+        print("planning time: ", round((end - start) * 1000, 2), "ms")
+        rrt.print_num_nodes()
 
         if success:
             print("Tree planning reached the goal.")
