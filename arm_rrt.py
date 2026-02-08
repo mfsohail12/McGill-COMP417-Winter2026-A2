@@ -23,7 +23,7 @@ class Tree:
             self.kdtree = cKDTree(data)
 
 class RRT:
-    def __init__(self, step_size=0.1,max_iter=20,env_name="Free"):
+    def __init__(self, step_size=0.1,max_iter=8000,env_name="Free"):
         self.controller = robots.Gen3LiteArmController(env_name=env_name)
 
         self.start = Node(self.controller.getCurrentJointAngles())
@@ -40,33 +40,53 @@ class RRT:
     # syntax elements and helper functions you could use, but 
     # you will have to fix and extend this to make it an RRT or 
     # RRT-Connect planner that can solve the harder environments.
+
     def plan(self):
-
-        # Add max_iter nodes to each start and goal tree
+        tree1 = self.start_tree
+        tree2 = self.goal_tree
+        
         for k in tqdm(range(self.max_iter)):
-            rnd_point = self.sample()
-            if self.collision_free(rnd_point, self.start.point):
-                new_node = Node(rnd_point,self.start)
-                self.start_tree.add(new_node)
+            rnd_point = self.sample() # pick a random point
+            
+            # Extending tree1 towards random point
+            nearest_node_tree1 = self.nearest_node(rnd_point, tree1)
+            new_node_tree1 = self.steer(nearest_node_tree1, rnd_point)
 
-            rnd_point = self.sample()
-            if self.collision_free(rnd_point, self.goal.point):
-                new_node = Node(rnd_point,self.goal)
-                self.goal_tree.add(new_node)
+            # Checking for collisions before extending
+            if (self.collision_free(nearest_node_tree1.point, new_node_tree1.point)):
+                tree1.add(new_node_tree1)
+            else:
+                continue # we were unable to extend tree1 towards the random point due to a collision
 
-        # Now add the same rnd_pnt to both trees, making a connection
-        # and completing the path start->goal
-        rnd_point = self.sample()   
-        if self.collision_free(rnd_point, self.start.point):
-            new_start_node = Node(rnd_point,self.start)
-            self.start_tree.add(new_start_node)
+            nearest_node_tree2 = self.nearest_node(new_node_tree1.point, tree2) # finding nearest node in tree2 to the new node added in tree1
+            current_node_tree2 = nearest_node_tree2
+            
+            # Greedily trying to connect tree2 to the new node added to tree1
+            while (True):
+                new_node_tree2 = self.steer(current_node_tree2, new_node_tree1.point)
 
-        if self.collision_free(rnd_point, self.goal.point):
-            new_goal_node = Node(rnd_point,self.goal)
-            self.goal_tree.add(new_goal_node)
+                # Checking for collisions before extending tree2
+                if (self.collision_free(current_node_tree2.point, new_node_tree2.point)):
+                    tree2.add(new_node_tree2)
 
-        self.path_to_goal = self.extract_path(new_start_node,new_goal_node)
-        return True
+                    current_node_tree2 = new_node_tree2
+
+                    # Checking if we have connected with the tree1
+                    if (self.reached_goal(current_node_tree2, new_node_tree1)):
+                       # Extracting path from start -> goal in appropriate direction
+                       if (tree1 == self.start_tree):
+                            self.path_to_goal = self.extract_path(new_node_tree1, current_node_tree2)
+                       else:
+                            self.path_to_goal = self.extract_path(current_node_tree2, new_node_tree1)
+
+                       return True # path from start to goal was found
+                else:
+                    break # obstacle occured, cannot extend goal tree anymore
+
+            # swapping trees and trying in other direction
+            tree1, tree2 = tree2, tree1
+        
+        return False # path from start to goal was not found
 
     def sample(self):
         point = []
